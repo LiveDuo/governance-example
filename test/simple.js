@@ -114,43 +114,39 @@ describe('Compound Governance', () => {
 		// console.log(proposal)
 
 
+		console.log('Creating Proposal')
 		const description = 'Proposal #2: Create DAI bond!'
 		const functionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
 		const proposeTx = await governor.propose([governanceToken.address], [0], [functionEncoded], description)
 		const tx = await proposeTx.wait()
 		const proposalId = tx.events[0].args.proposalId
 
-
-		const proposalOptionCountBefore = await governor.proposalOptionCount(proposalId)
-		console.log('Proposal Option Count:', proposalOptionCountBefore.toNumber())
-		
 		console.log('Adding Options to Proposal')
-		await governor.addOptionToProposal(proposalId, "Option 1")
-		await governor.addOptionToProposal(proposalId, "Option 2")
+		await governor.addOptionToProposal(proposalId, 'Option 1')
+		await governor.addOptionToProposal(proposalId, 'Option 2')
 
-		console.log('Mining blocks')
+		console.log('Mining 1 block')
 		await network.provider.send('evm_mine')
 
-		await governor.castVote(proposalId, 1)
-		// await governor.castVote(proposalId, +true)
+		await governor.castVote(proposalId, 1) // voting option 1
 		
 		const proposalStateId = await governor.state(proposalId)
-		console.log('Proposal State:', ProposalState[proposalStateId])
+		console.log('-> Proposal State:', ProposalState[proposalStateId])
 		
-		console.log('Mining blocks')
+		console.log('Mining 3 blocks')
 		await network.provider.send('evm_mine')
 		await network.provider.send('evm_mine')
 		await network.provider.send('evm_mine')
 
 		const proposalStateIdAfter = await governor.state(proposalId)
-		console.log('Proposal State:', ProposalState[proposalStateIdAfter])
-
-		const proposalOptionCount = await governor.proposalOptionCount(proposalId)
-		console.log('Proposal Option Count:', proposalOptionCount.toNumber())
+		console.log('-> Proposal State:', ProposalState[proposalStateIdAfter])
 
 		// console.log(await governor.proposalVotes(proposalId))
 		const votes = await governor.proposalOptionVotes(proposalId)
-		const votesClean = votes[0].map((v, i) => ({ [votes[1][i]]: Math.floor(ethers.utils.formatUnits(v, 18))}))
-		console.log(votesClean)
+		const votesString = votes[0].map((v, i) => `${votes[1][i]} (${Math.floor(ethers.utils.formatUnits(v, 18))})`).join(', ')
+		console.log('-> Proposals:', votesString)
+
+		const functionEncoded2 = governanceToken.interface.encodeFunctionData('createBond', [])
+		console.log('-> Encoded Function:', functionEncoded2)
 	})
 })
