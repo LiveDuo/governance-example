@@ -28,19 +28,6 @@ contract GovernorContract is
 
     address public temporaryManager;
 
-    struct ProposalOption {
-        uint256 forVotes;
-        string description;
-        // mapping(address => bool) hasVoted;
-    }
-
-    struct ProposalExtended {
-        ProposalOption[] options;
-        bool property;
-    }
-
-    mapping(uint256 => ProposalExtended) public _proposalsExtended;
-
     constructor(
         ERC20Votes _token,
         TimelockController _timelock,
@@ -129,55 +116,6 @@ contract GovernorContract is
         int256 ballotWeight = getBallotWeightFromBlockNumber(blockNumber);
         return getWeightedVotes(account, blockNumber, ballotWeight);
     }
-
-    // TODO: should 
-    function addOptionToProposal(uint256 proposalId, string memory description)
-        public
-    {
-        ProposalExtended storage proposal = _proposalsExtended[proposalId];
-        proposal.property = true;
-
-        // uint256 forVotes; string description; mapping(address => bool) hasVoted;
-        // mapping(address => bool) storage hasVoted;
-        ProposalOption memory option = ProposalOption(0, description);
-
-        proposal.options.push(option);
-    }
-
-    function proposalOptionCount(uint256 proposalId)
-        public
-        view
-        returns (uint256)
-    {
-        return _proposalsExtended[proposalId].options.length;
-    }
-
-    // function castVote(uint256 proposalId, uint8 support)
-    //     public
-    //     virtual
-    //     override(Governor, IGovernor)
-    //     returns (uint256)
-    // {
-    //     return super.castVote(proposalId, support);
-    // }
-
-    // function castVoteWithReason(
-    //     uint256 proposalId,
-    //     uint8 support,
-    //     string calldata reason
-    // ) public virtual override(Governor, IGovernor) returns (uint256) {
-    //     return super.castVoteWithReason(proposalId, support, reason);
-    // }
-
-    // function castVoteBySig(
-    //     uint256 proposalId,
-    //     uint8 support,
-    //     uint8 v,
-    //     bytes32 r,
-    //     bytes32 s
-    // ) public virtual override(Governor, IGovernor) returns (uint256) {
-    //     return super.castVoteBySig(proposalId, support, v, r, s);
-    // }
 
     function state(uint256 proposalId)
         public

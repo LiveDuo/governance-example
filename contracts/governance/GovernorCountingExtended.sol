@@ -21,7 +21,13 @@ abstract contract GovernorCountingSimple is Governor {
         Abstain
     }
 
+    struct ProposalOption {
+        uint256 forVotes;
+        string description;
+    }
+
     struct ProposalVote {
+        ProposalOption[] options;
         uint256 againstVotes;
         uint256 forVotes;
         uint256 abstainVotes;
@@ -62,6 +68,30 @@ abstract contract GovernorCountingSimple is Governor {
         return (proposalvote.againstVotes, proposalvote.forVotes, proposalvote.abstainVotes);
     }
 
+    function proposalOptionVotes(uint256 proposalId)
+        public
+        view
+        virtual
+        returns (
+            uint256[] memory,
+            string[] memory
+        )
+    {
+        ProposalOption[] storage proposalvote = _proposalVotes[proposalId].options;
+
+        uint256[] memory voteWeights = new uint256[](proposalvote.length);
+        for (uint i = 0; i < proposalvote.length; i++) {
+            voteWeights[i] = proposalvote[i].forVotes;
+        }
+
+        string[] memory votesDescriptions = new string[](proposalvote.length);
+        for (uint i = 0; i < proposalvote.length; i++) {
+            votesDescriptions[i] = proposalvote[i].description;
+        }
+
+        return (voteWeights, votesDescriptions);
+    }
+
     /**
      * @dev See {Governor-_quorumReached}.
      */
@@ -94,14 +124,48 @@ abstract contract GovernorCountingSimple is Governor {
         require(!proposalvote.hasVoted[account], "GovernorVotingSimple: vote already cast");
         proposalvote.hasVoted[account] = true;
 
-        if (support == uint8(VoteType.Against)) {
-            proposalvote.againstVotes += weight;
-        } else if (support == uint8(VoteType.For)) {
-            proposalvote.forVotes += weight;
-        } else if (support == uint8(VoteType.Abstain)) {
-            proposalvote.abstainVotes += weight;
+        if (proposalvote.options.length > 0) {
+
+            if (support == uint8(VoteType.Against)) { // against
+                proposalvote.againstVotes += weight;
+            } else if (proposalvote.options.length > support) { // for
+                proposalvote.options[support].forVotes += weight;
+                proposalvote.forVotes += weight;
+            } else { // abstain
+                proposalvote.abstainVotes += weight;
+            }
+
         } else {
-            revert("GovernorVotingSimple: invalid value for enum VoteType");
+
+            if (support == uint8(VoteType.Against)) {
+                proposalvote.againstVotes += weight;
+            } else if (support == uint8(VoteType.For)) {
+                proposalvote.forVotes += weight;
+            } else if (support == uint8(VoteType.Abstain)) {
+                proposalvote.abstainVotes += weight;
+            } else {
+                revert("GovernorVotingSimple: invalid value for enum VoteType");
+            }
         }
+    }
+
+    function addOptionToProposal(uint256 proposalId, string memory description)
+        public
+    {
+        ProposalVote storage proposal = _proposalVotes[proposalId];
+        if (proposal.options.length == 0) {
+            ProposalOption memory againstOption = ProposalOption(0, "Against");
+            proposal.options.push(againstOption);
+        }
+        ProposalOption memory option = ProposalOption(0, description);
+        proposal.options.push(option);
+    }
+
+    function proposalOptionCount(uint256 proposalId)
+        public
+        view
+        returns (uint256)
+    {
+        return _proposalVotes[proposalId].options.length;
     }
 }

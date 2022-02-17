@@ -14,6 +14,17 @@ const VOTING_DELAY = 1 // block
 const TIMELOCK_DELAY = 1 // seconds
 const EQUALIBRIUM_BLOCK = blockNumberAfterDays(180) // periods
 
+const ProposalState = [
+	'Pending',
+	'Active',
+	'Canceled',
+	'Defeated',
+	'Succeeded',
+	'Queued',
+	'Expired',
+	'Executed'
+]
+
 const prepareAndExecuteProposal = async (proposalDescription, encodedFunction, governanceToken, governor, account) => {
 	
 	// propose
@@ -117,12 +128,29 @@ describe('Compound Governance', () => {
 		await governor.addOptionToProposal(proposalId, "Option 1")
 		await governor.addOptionToProposal(proposalId, "Option 2")
 
+		console.log('Mining blocks')
 		await network.provider.send('evm_mine')
 
-		await governor.castVote(proposalId, 2) // TODO: implement vote casting for multiple options case
+		await governor.castVote(proposalId, 1)
 		// await governor.castVote(proposalId, +true)
+		
+		const proposalStateId = await governor.state(proposalId)
+		console.log('Proposal State:', ProposalState[proposalStateId])
+		
+		console.log('Mining blocks')
+		await network.provider.send('evm_mine')
+		await network.provider.send('evm_mine')
+		await network.provider.send('evm_mine')
+
+		const proposalStateIdAfter = await governor.state(proposalId)
+		console.log('Proposal State:', ProposalState[proposalStateIdAfter])
 
 		const proposalOptionCount = await governor.proposalOptionCount(proposalId)
 		console.log('Proposal Option Count:', proposalOptionCount.toNumber())
+
+		// console.log(await governor.proposalVotes(proposalId))
+		const votes = await governor.proposalOptionVotes(proposalId)
+		const votesClean = votes[0].map((v, i) => ({ [votes[1][i]]: Math.floor(ethers.utils.formatUnits(v, 18))}))
+		console.log(votesClean)
 	})
 })
