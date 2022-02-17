@@ -94,5 +94,35 @@ describe('Compound Governance', () => {
 		const createBondFunctionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
 		await prepareAndExecuteProposal(createBondProposalDescription, createBondFunctionEncoded, governanceToken, governor, owner)
 		expect(await governanceToken.started()).to.equal(true)
+		
+		
+		// const eventFilterPropose = governor.filters.ProposalCreated()
+		// const events = await governor.queryFilter(eventFilterPropose)
+		// const proposalIds = events.map(e => e.args.proposalId._hex)
+		// const proposal = await governor._proposalsExtended(proposalIds[0])
+		// console.log(proposal)
+
+
+		const description = 'Proposal #2: Create DAI bond!'
+		const functionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
+		const proposeTx = await governor.propose([governanceToken.address], [0], [functionEncoded], description)
+		const tx = await proposeTx.wait()
+		const proposalId = tx.events[0].args.proposalId
+
+
+		const proposalOptionCountBefore = await governor.proposalOptionCount(proposalId)
+		console.log('Proposal Option Count:', proposalOptionCountBefore.toNumber())
+		
+		console.log('Adding Options to Proposal')
+		await governor.addOptionToProposal(proposalId, "Option 1")
+		await governor.addOptionToProposal(proposalId, "Option 2")
+
+		await network.provider.send('evm_mine')
+
+		await governor.castVote(proposalId, 2) // TODO: implement vote casting for multiple options case
+		// await governor.castVote(proposalId, +true)
+
+		const proposalOptionCount = await governor.proposalOptionCount(proposalId)
+		console.log('Proposal Option Count:', proposalOptionCount.toNumber())
 	})
 })
