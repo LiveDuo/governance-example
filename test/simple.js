@@ -113,17 +113,23 @@ describe('Compound Governance', () => {
 		// const proposal = await governor._proposalsExtended(proposalIds[0])
 		// console.log(proposal)
 
-
+		console.log()
 		console.log('Creating Proposal')
 		const description = 'Proposal #2: Create DAI bond!'
 		const functionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
 		const proposeTx = await governor.propose([governanceToken.address], [0], [functionEncoded], description)
 		const tx = await proposeTx.wait()
 		const proposalId = tx.events[0].args.proposalId
+		const proposalStateIdBefore = await governor.state(proposalId)
+		console.log('-> Proposal State:', ProposalState[proposalStateIdBefore])
+		console.log()
 
 		console.log('Adding Options to Proposal')
 		await governor.addOptionToProposal(proposalId, 'Option 1')
 		await governor.addOptionToProposal(proposalId, 'Option 2')
+		const proposalOptionCount = await governor.proposalOptionCount(proposalId)
+		console.log('-> Proposal Option Count:', proposalOptionCount.toString())
+		console.log()
 
 		console.log('Mining 1 block')
 		await network.provider.send('evm_mine')
@@ -132,6 +138,7 @@ describe('Compound Governance', () => {
 		
 		const proposalStateId = await governor.state(proposalId)
 		console.log('-> Proposal State:', ProposalState[proposalStateId])
+		console.log()
 		
 		console.log('Mining 3 blocks')
 		await network.provider.send('evm_mine')
@@ -148,5 +155,6 @@ describe('Compound Governance', () => {
 
 		const functionEncoded2 = governanceToken.interface.encodeFunctionData('createBond', [])
 		console.log('-> Encoded Function:', functionEncoded2)
+		console.log()
 	})
 })
