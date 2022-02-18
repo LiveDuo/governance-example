@@ -41,4 +41,8 @@ contract GovernanceToken is Initializable, OwnableUpgradeable, ERC20Upgradeable,
         started = true;
     }
 
+    function createAnotherBond(bool _started) public onlyOwner {
+        started = _started;
+    }
+
 }

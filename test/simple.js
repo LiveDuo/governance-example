@@ -25,32 +25,6 @@ const ProposalState = [
 	'Executed'
 ]
 
-const prepareAndExecuteProposal = async (proposalDescription, encodedFunction, governanceToken, governor, account) => {
-	
-	// propose
-	const proposeTx = await governor.connect(account).propose([governanceToken.address], [0], [encodedFunction], proposalDescription)
-	const tx = await proposeTx.wait()
-	const proposalId = tx.events[0].args.proposalId
-	
-	// simulate 1 block
-	for (let i = 0; i < VOTING_DELAY; i++) {
-		await network.provider.send('evm_mine')
-	}
-	
-	// vote
-	await governor.connect(account).castVoteWithReason(proposalId, +true, 'Random reason')
-	
-	// simulate 5 block
-	for (let i = 0; i < VOTING_PERIOD; i++) {
-		await network.provider.send('evm_mine')
-	}
-	
-	// execute
-	const descriptionHash = ethers.utils.id(proposalDescription)
-	await governor.connect(account).queue([governanceToken.address], [0], [encodedFunction], descriptionHash)
-	await governor.connect(account).execute([governanceToken.address], [0], [encodedFunction], descriptionHash)
-}
-
 describe('Compound Governance', () => {
 
 	let governanceToken, governor
@@ -97,16 +71,6 @@ describe('Compound Governance', () => {
 
 	it('Should deploy, propose and execute a proposal', async () => {
 		
-		// get owner account
-		const [owner] = await ethers.getSigners()
-
-		// create bond (vote)
-		const createBondProposalDescription = 'Proposal #1: Create DAI bond!'
-		const createBondFunctionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
-		await prepareAndExecuteProposal(createBondProposalDescription, createBondFunctionEncoded, governanceToken, governor, owner)
-		expect(await governanceToken.started()).to.equal(true)
-		
-		
 		// const eventFilterPropose = governor.filters.ProposalCreated()
 		// const events = await governor.queryFilter(eventFilterPropose)
 		// const proposalIds = events.map(e => e.args.proposalId._hex)
@@ -139,7 +103,7 @@ describe('Compound Governance', () => {
 		const proposalStateId = await governor.state(proposalId)
 		console.log('-> Proposal State:', ProposalState[proposalStateId])
 		console.log()
-		
+
 		console.log('Mining 3 blocks')
 		await network.provider.send('evm_mine')
 		await network.provider.send('evm_mine')
@@ -155,6 +119,14 @@ describe('Compound Governance', () => {
 
 		const functionEncoded2 = governanceToken.interface.encodeFunctionData('createBond', [])
 		console.log('-> Encoded Function:', functionEncoded2)
+		const functionEncodede = governanceToken.interface.encodeFunctionData('createAnotherBond', [true])
+		console.log('-> Encoded Function:', functionEncodede)
 		console.log()
+
+		// execute
+		const descriptionHash = ethers.utils.id(description)
+		await governor.queue([governanceToken.address], [0], [functionEncoded], descriptionHash)
+		await governor.execute([governanceToken.address], [0], [functionEncoded], descriptionHash)
+
 	})
 })

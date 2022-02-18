@@ -10,6 +10,8 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 
 import "./GovernorCountingExtended.sol";
 
+import "hardhat/console.sol";
+
 contract GovernorContract is
     Governor,
     GovernorCountingSimple,
@@ -133,6 +135,38 @@ contract GovernorContract is
         string memory description
     ) public override(Governor, IGovernor) returns (uint256) {
         return super.propose(targets, values, calldatas, description);
+    }
+
+    function bytesToHexString(bytes memory _calldata) public virtual returns (string memory) {
+
+        string memory strx = "0x";
+
+        for (uint i = 0; i < _calldata.length; i++) {
+            uint8 bb = uint8(bytes1(_calldata[i]));
+
+            if (bb / 16 >= 10) {
+                uint x1 = 97 + ((bb / 16) - 10);
+                uint x2 = 48 + (bb % 16);
+                strx = string(abi.encodePacked(strx, x1, x2));
+            } else {
+                uint x1 = 48 + (bb / 16);
+                uint x2 = 48 + (bb % 16);
+                strx = string(abi.encodePacked(strx, x1, x2));
+            }
+
+        }
+        return strx;
+    }
+
+    function queue(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public virtual override returns (uint256) {
+        console.log(bytesToHexString(calldatas[0]));
+
+        super.queue(targets, values, calldatas, descriptionHash);
     }
 
     function _execute(
