@@ -146,12 +146,22 @@ contract GovernorContract is
 
             if (bb / 16 >= 10) {
                 uint x1 = 97 + ((bb / 16) - 10);
-                uint x2 = 48 + (bb % 16);
-                strx = string(abi.encodePacked(strx, x1, x2));
+                if (bb % 16 < 10) {
+                    uint x2 = 48 + (bb % 16);
+                    strx = string(abi.encodePacked(strx, x1, x2));
+                } else {
+                    uint x2 = 97 + ((bb % 16) - 10);
+                    strx = string(abi.encodePacked(strx, x1, x2));
+                }
             } else {
                 uint x1 = 48 + (bb / 16);
-                uint x2 = 48 + (bb % 16);
-                strx = string(abi.encodePacked(strx, x1, x2));
+                if (bb % 16 < 10) {
+                    uint x2 = 48 + (bb % 16);
+                    strx = string(abi.encodePacked(strx, x1, x2));
+                } else {
+                    uint x2 = 97 + ((bb % 16) - 10);
+                    strx = string(abi.encodePacked(strx, x1, x2));
+                }
             }
 
         }
@@ -166,7 +176,7 @@ contract GovernorContract is
     ) public virtual override returns (uint256) {
         console.log(bytesToHexString(calldatas[0]));
 
-        super.queue(targets, values, calldatas, descriptionHash);
+        return super.queue(targets, values, calldatas, descriptionHash);
     }
 
     function _execute(

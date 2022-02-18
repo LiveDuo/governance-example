@@ -81,7 +81,8 @@ describe('Compound Governance', () => {
 		console.log('Creating Proposal')
 		const description = 'Proposal #2: Create DAI bond!'
 		const functionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
-		const proposeTx = await governor.propose([governanceToken.address], [0], [functionEncoded], description)
+		const functionEncoded2 = governanceToken.interface.encodeFunctionData('createAnotherBond', [true])
+		const proposeTx = await governor.propose([governanceToken.address], [0], [functionEncoded2], description)
 		const tx = await proposeTx.wait()
 		const proposalId = tx.events[0].args.proposalId
 		const proposalStateIdBefore = await governor.state(proposalId)
@@ -117,16 +118,14 @@ describe('Compound Governance', () => {
 		const votesString = votes[0].map((v, i) => `${votes[1][i]} (${Math.floor(ethers.utils.formatUnits(v, 18))})`).join(', ')
 		console.log('-> Proposals:', votesString)
 
-		const functionEncoded2 = governanceToken.interface.encodeFunctionData('createBond', [])
+		console.log('-> Encoded Function:', functionEncoded)
 		console.log('-> Encoded Function:', functionEncoded2)
-		const functionEncodede = governanceToken.interface.encodeFunctionData('createAnotherBond', [true])
-		console.log('-> Encoded Function:', functionEncodede)
 		console.log()
 
 		// execute
 		const descriptionHash = ethers.utils.id(description)
-		await governor.queue([governanceToken.address], [0], [functionEncoded], descriptionHash)
-		await governor.execute([governanceToken.address], [0], [functionEncoded], descriptionHash)
+		await governor.queue([governanceToken.address], [0], [functionEncoded2], descriptionHash)
+		await governor.execute([governanceToken.address], [0], [functionEncoded2], descriptionHash)
 
 	})
 })
