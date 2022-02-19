@@ -205,8 +205,8 @@ contract GovernorContract is
         bytes32 descriptionHash
     ) public view virtual override(Governor, IGovernor) returns (uint256) {
         uint256 proposalId = uint256(keccak256(abi.encode(targets, values, calldatas, descriptionHash)));
-        bytes[] memory calldatasNew = getCalldatas(proposalId, calldatas);
-        return uint256(keccak256(abi.encode(targets, values, calldatasNew, descriptionHash)));
+        bytes[] memory datas = getCalldatas(proposalId, calldatas);
+        return uint256(keccak256(abi.encode(targets, values, datas, descriptionHash)));
     }
 
     function _execute(
