@@ -21,9 +21,25 @@ abstract contract GovernorCountingSimple is Governor {
         Abstain
     }
 
+    enum OptionType {
+        Single,
+        Address,
+        UNumber,
+        Number,
+        Boolean
+    }
+
+    struct ProposalOptionData {
+        address _address;
+        uint256 _unumber;
+        int256 _number;
+        bool _boolean;
+    }
+
     struct ProposalOption {
         uint256 forVotes;
         string description;
+        ProposalOptionData data;
     }
 
     struct ProposalVote {
@@ -31,6 +47,7 @@ abstract contract GovernorCountingSimple is Governor {
         uint256 againstVotes;
         uint256 forVotes;
         uint256 abstainVotes;
+        uint8 dataType;
         mapping(address => bool) hasVoted;
     }
 
@@ -68,7 +85,43 @@ abstract contract GovernorCountingSimple is Governor {
         return (proposalvote.againstVotes, proposalvote.forVotes, proposalvote.abstainVotes);
     }
 
-    function proposalOptionVotes(uint256 proposalId)
+    function optionSucceeded(uint256 proposalId)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
+        ProposalOption[] memory proposalvote = _proposalVotes[proposalId].options;
+
+        uint256 maxVoteWeights = 0;
+        uint256 index = 0;
+
+        for (uint i = 0; i < proposalvote.length; i++) {
+            if (proposalvote[i].forVotes > maxVoteWeights) {
+                maxVoteWeights = proposalvote[i].forVotes;
+                index = i;
+            }
+        }
+
+        return index;
+    }
+
+    function proposalDataType(uint256 proposalId) public view returns (uint8) {
+        ProposalVote storage proposalvote = _proposalVotes[proposalId];
+        return proposalvote.dataType;
+    }
+
+    function optionParam(uint256 proposalId, uint256 index) public view returns (ProposalOption memory) {
+        ProposalOption[] memory proposalvote = _proposalVotes[proposalId].options;
+
+        if (proposalvote.length == 0) {
+            return ProposalOption(0, "", ProposalOptionData(address(0), 0, 0, false));
+        } else {
+            return proposalvote[index];
+        }
+    }
+
+    function optionVotes(uint256 proposalId)
         public
         view
         virtual
@@ -149,16 +202,27 @@ abstract contract GovernorCountingSimple is Governor {
         }
     }
 
-    function addOptionToProposal(uint256 proposalId, string memory description)
+    function upgradeToMultipleOptions(uint256 proposalId, uint8 dataType)
+        internal
+    {
+        ProposalVote storage proposal = _proposalVotes[proposalId];
+        proposal.dataType = dataType;
+
+        ProposalOptionData memory optionData = ProposalOptionData(address(0), 0, 0, false);
+
+        ProposalOption memory option = ProposalOption(0, "Against", optionData);
+        proposal.options.push(option);
+    }
+
+    function addOptionToProposal(uint256 proposalId, string memory description, bool boolean)
         public
     {
         ProposalVote storage proposal = _proposalVotes[proposalId];
-        if (proposal.options.length == 0) {
-            ProposalOption memory againstOption = ProposalOption(0, "Against");
-            proposal.options.push(againstOption);
-        }
-        ProposalOption memory option = ProposalOption(0, description);
-        proposal.options.push(option);
+
+        require(proposal.dataType == uint8(OptionType.Boolean), "Option should be a boolean");
+
+        ProposalOptionData memory optionData = ProposalOptionData(address(0), 0, 0, boolean);
+        proposal.options.push(ProposalOption(0, description, optionData));
     }
 
     function proposalOptionCount(uint256 proposalId)

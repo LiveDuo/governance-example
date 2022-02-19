@@ -25,6 +25,14 @@ const ProposalState = [
 	'Executed'
 ]
 
+const OptionTypes = [
+	'Single',
+	'Address',
+	'UNumber',
+	'Number',
+	'Boolean'
+]
+
 describe('Compound Governance', () => {
 
 	let governanceToken, governor
@@ -80,9 +88,8 @@ describe('Compound Governance', () => {
 		console.log()
 		console.log('Creating Proposal')
 		const description = 'Proposal #2: Create DAI bond!'
-		const functionEncoded = governanceToken.interface.encodeFunctionData('createBond', [])
-		const functionEncoded2 = governanceToken.interface.encodeFunctionData('createAnotherBond', [true])
-		const proposeTx = await governor.propose([governanceToken.address], [0], [functionEncoded2], description)
+		const functionEncoded = governanceToken.interface.encodeFunctionData('createAnotherBond', [true])
+		const proposeTx = await governor.proposeMultipleOptions([governanceToken.address], [0], [functionEncoded], description, OptionTypes.indexOf('Boolean'))
 		const tx = await proposeTx.wait()
 		const proposalId = tx.events[0].args.proposalId
 		const proposalStateIdBefore = await governor.state(proposalId)
@@ -90,8 +97,8 @@ describe('Compound Governance', () => {
 		console.log()
 
 		console.log('Adding Options to Proposal')
-		await governor.addOptionToProposal(proposalId, 'Option 1')
-		await governor.addOptionToProposal(proposalId, 'Option 2')
+		await governor.addOptionToProposal(proposalId, 'Vote true', true)
+		await governor.addOptionToProposal(proposalId, 'Vote false', false)
 		const proposalOptionCount = await governor.proposalOptionCount(proposalId)
 		console.log('-> Proposal Option Count:', proposalOptionCount.toString())
 		console.log()
@@ -113,19 +120,25 @@ describe('Compound Governance', () => {
 		const proposalStateIdAfter = await governor.state(proposalId)
 		console.log('-> Proposal State:', ProposalState[proposalStateIdAfter])
 
-		// console.log(await governor.proposalVotes(proposalId))
-		const votes = await governor.proposalOptionVotes(proposalId)
+		const votes = await governor.optionVotes(proposalId)
 		const votesString = votes[0].map((v, i) => `${votes[1][i]} (${Math.floor(ethers.utils.formatUnits(v, 18))})`).join(', ')
 		console.log('-> Proposals:', votesString)
 
+		const proposalSucceededOption = await governor.optionSucceeded(proposalId)
+		console.log('-> Proposal Option Succeeded:', proposalSucceededOption.toString())
 		console.log('-> Encoded Function:', functionEncoded)
-		console.log('-> Encoded Function:', functionEncoded2)
 		console.log()
 
-		// execute
 		const descriptionHash = ethers.utils.id(description)
-		await governor.queue([governanceToken.address], [0], [functionEncoded2], descriptionHash)
-		await governor.execute([governanceToken.address], [0], [functionEncoded2], descriptionHash)
+		const functionEncodedParameter = await governor.getCalldatas(proposalId, [functionEncoded])
+			.then(x => x[0])
 
+		await governor.queue([governanceToken.address], [0], [functionEncodedParameter], descriptionHash)
+		await governor.execute([governanceToken.address], [0], [functionEncodedParameter], descriptionHash)
+
+		const result = await governanceToken.started()
+		console.log('Executing Proposal')
+		console.log('-> Function Result:', result.toString())
+		console.log()
 	})
 })

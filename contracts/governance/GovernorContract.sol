@@ -10,8 +10,6 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 
 import "./GovernorCountingExtended.sol";
 
-import "hardhat/console.sol";
-
 contract GovernorContract is
     Governor,
     GovernorCountingSimple,
@@ -128,6 +126,19 @@ contract GovernorContract is
         return super.state(proposalId);
     }
 
+    function proposeMultipleOptions(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        uint8 dataType
+    ) public returns (uint256) {
+        uint256 result = super.propose(targets, values, calldatas, description);
+        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
+        upgradeToMultipleOptions(proposalId, dataType);
+        return result;
+    }
+
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -137,35 +148,65 @@ contract GovernorContract is
         return super.propose(targets, values, calldatas, description);
     }
 
-    function bytesToHexString(bytes memory _calldata) public virtual returns (string memory) {
+    function getFunctionParameters(uint256 proposalId) internal view returns (bytes memory) {
 
-        string memory strx = "0x";
+        uint8 dataType = proposalDataType(proposalId);
+        uint256 index = optionSucceeded(proposalId);
+        ProposalOption memory proposalOption = optionParam(proposalId, index);
 
-        for (uint i = 0; i < _calldata.length; i++) {
-            uint8 bb = uint8(bytes1(_calldata[i]));
+        if (dataType == uint8(OptionType.Address)) {
+            address param = proposalOption.data._address;
+            return abi.encodePacked(param);
+        } else if (dataType == uint8(OptionType.UNumber)) {
+            uint256 param = proposalOption.data._unumber;
+            return abi.encodePacked(param);
+        } else if (dataType == uint8(OptionType.Number)) {
+            int256 param = proposalOption.data._number;
+            return abi.encodePacked(param);
+        } else if (dataType == uint8(OptionType.Boolean)) {
+            bool param = proposalOption.data._boolean;
+            return abi.encodePacked(uint(param ? 1 : 0));
+        } else {
+            return "";
+        }
+    }
 
-            if (bb / 16 >= 10) {
-                uint x1 = 97 + ((bb / 16) - 10);
-                if (bb % 16 < 10) {
-                    uint x2 = 48 + (bb % 16);
-                    strx = string(abi.encodePacked(strx, x1, x2));
-                } else {
-                    uint x2 = 97 + ((bb % 16) - 10);
-                    strx = string(abi.encodePacked(strx, x1, x2));
-                }
-            } else {
-                uint x1 = 48 + (bb / 16);
-                if (bb % 16 < 10) {
-                    uint x2 = 48 + (bb % 16);
-                    strx = string(abi.encodePacked(strx, x1, x2));
-                } else {
-                    uint x2 = 97 + ((bb % 16) - 10);
-                    strx = string(abi.encodePacked(strx, x1, x2));
-                }
+    function getCalldatas(uint256 proposalId, bytes[] memory datas) public view returns (bytes[] memory) {
+        
+        uint8 dataType = proposalDataType(proposalId);
+        if (dataType == uint8(OptionType.Single)) {
+            return datas;
+        }
+        
+        bytes[] memory calldatas = new bytes[](datas.length);
+        
+        for (uint y = 0; y < datas.length; y++) {
+
+            bytes memory functionSignature = new bytes(4);
+            for (uint i = 0; i < 4; i++) {
+                functionSignature[i] = datas[y][i];
             }
 
+            bytes memory functionParameters = new bytes(datas[y].length - 4);
+            for (uint i = 0; i < datas[y].length - 4; i++) {
+                functionParameters[i] = datas[y][i+4];
+            }
+
+            calldatas[y] = abi.encodePacked(functionSignature, getFunctionParameters(proposalId));
         }
-        return strx;
+
+        return calldatas;
+    }
+
+    function hashProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public view virtual override(Governor, IGovernor) returns (uint256) {
+        uint256 proposalId = uint256(keccak256(abi.encode(targets, values, calldatas, descriptionHash)));
+        bytes[] memory calldatasNew = getCalldatas(proposalId, calldatas);
+        return uint256(keccak256(abi.encode(targets, values, calldatasNew, descriptionHash)));
     }
 
     function queue(
@@ -174,8 +215,6 @@ contract GovernorContract is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public virtual override returns (uint256) {
-        console.log(bytesToHexString(calldatas[0]));
-
         return super.queue(targets, values, calldatas, descriptionHash);
     }
 
