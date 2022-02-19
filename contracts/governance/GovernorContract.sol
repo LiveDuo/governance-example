@@ -209,15 +209,6 @@ contract GovernorContract is
         return uint256(keccak256(abi.encode(targets, values, calldatasNew, descriptionHash)));
     }
 
-    function queue(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public virtual override returns (uint256) {
-        return super.queue(targets, values, calldatas, descriptionHash);
-    }
-
     function _execute(
         uint256 proposalId,
         address[] memory targets,
