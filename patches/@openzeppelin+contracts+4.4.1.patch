@@ -1,0 +1,26 @@
+diff --git a/node_modules/@openzeppelin/contracts/governance/Governor.sol b/node_modules/@openzeppelin/contracts/governance/Governor.sol
+index 08d5764..b776984 100644
+--- a/node_modules/@openzeppelin/contracts/governance/Governor.sol
++++ b/node_modules/@openzeppelin/contracts/governance/Governor.sol
+@@ -102,7 +102,7 @@ abstract contract Governor is Context, ERC165, EIP712, IGovernor {
+         uint256[] memory values,
+         bytes[] memory calldatas,
+         bytes32 descriptionHash
+-    ) public pure virtual override returns (uint256) {
++    ) public view virtual override returns (uint256) {
+         return uint256(keccak256(abi.encode(targets, values, calldatas, descriptionHash)));
+     }
+ 
+diff --git a/node_modules/@openzeppelin/contracts/governance/IGovernor.sol b/node_modules/@openzeppelin/contracts/governance/IGovernor.sol
+index 54722d3..f6bd6c6 100644
+--- a/node_modules/@openzeppelin/contracts/governance/IGovernor.sol
++++ b/node_modules/@openzeppelin/contracts/governance/IGovernor.sol
+@@ -94,7 +94,7 @@ abstract contract IGovernor is IERC165 {
+         uint256[] calldata values,
+         bytes[] calldata calldatas,
+         bytes32 descriptionHash
+-    ) public pure virtual returns (uint256);
++    ) public view virtual returns (uint256);
+ 
+     /**
+      * @notice module:core
