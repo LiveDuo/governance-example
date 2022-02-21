@@ -12,7 +12,7 @@ import "../source/GovernorCountingExtended.sol";
 
 contract GovernorContract is
     Governor,
-    GovernorCountingSimple,
+    GovernorCountingExtended,
     GovernorVotes,
     GovernorVotesQuorumFraction,
     GovernorTimelockControl

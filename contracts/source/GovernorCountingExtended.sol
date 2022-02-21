@@ -1,17 +1,11 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (governance/extensions/GovernorCountingSimple.sol)
+// OpenZeppelin Contracts v4.4.1 (governance/extensions/GovernorCountingExtended.sol)
 
 pragma solidity ^0.8.0;
 
-// import "../Governor.sol";
 import "@openzeppelin/contracts/governance/Governor.sol";
 
-/**
- * @dev Extension of {Governor} for simple, 3 options, vote counting.
- *
- * _Available since v4.3._
- */
-abstract contract GovernorCountingSimple is Governor {
+abstract contract GovernorCountingExtended is Governor {
     /**
      * @dev Supported vote types. Matches Governor Bravo ordering.
      */
@@ -114,7 +108,7 @@ abstract contract GovernorCountingSimple is Governor {
     ) internal virtual override {
         ProposalVote storage proposalvote = _proposalVotes[proposalId];
 
-        require(!proposalvote.hasVoted[account], "GovernorVotingSimple: vote already cast");
+        require(!proposalvote.hasVoted[account], "GovernorCountingExtended: vote already cast");
         proposalvote.hasVoted[account] = true;
 
         if (proposalvote.dataType == uint8(OptionType.Single)) {
@@ -126,7 +120,7 @@ abstract contract GovernorCountingSimple is Governor {
             } else if (support == uint8(VoteType.Abstain)) {
                 proposalvote.abstainVotes += weight;
             } else {
-                revert("GovernorVotingSimple: invalid value for enum VoteType");
+                revert("GovernorCountingExtended: invalid value for enum VoteType");
             }
         } else {
 
@@ -251,7 +245,7 @@ abstract contract GovernorCountingSimple is Governor {
             bool param = proposalOption.data._boolean;
             return abi.encodePacked(uint(param ? 1 : 0));
         } else {
-            revert("GovernorVotingSimple: invalid value for enum OptionType");
+            revert("GovernorCountingExtended: invalid value for enum OptionType");
         }
     }
 
