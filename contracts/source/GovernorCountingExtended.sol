@@ -265,12 +265,13 @@ abstract contract GovernorCountingExtended is Governor {
                 functionSignature[i] = datas[y][i];
             }
 
-            bytes memory functionParameters = new bytes(datas[y].length - 4);
-            for (uint i = 0; i < datas[y].length - 4; i++) {
-                functionParameters[i] = datas[y][i+4];
+            bytes memory functionForwardingParameters = new bytes(datas[y].length - 4 - 32);
+            for (uint i = 0; i < datas[y].length - 4 - 32; i++) {
+                functionForwardingParameters[i] = datas[y][i+4];
             }
 
-            calldatas[y] = abi.encodePacked(functionSignature, optionSucceededParameters(proposalId));
+            bytes memory functionLastParameter = optionSucceededParameters(proposalId);
+            calldatas[y] = abi.encodePacked(functionSignature, functionForwardingParameters, functionLastParameter);
         }
 
         return calldatas;
