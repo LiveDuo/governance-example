@@ -125,14 +125,37 @@ contract GovernorContract is
         return proposalId;
     }
 
-    function hashProposal(
+    function queue(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public view virtual override(Governor, IGovernor) returns (uint256) {
+    ) public virtual override returns (uint256) {
         uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
-        bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
-        return super.hashProposal(targets, values, datas, descriptionHash);
+        if (proposalDataType(proposalId) != uint8(OptionType.Single)) {
+            bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
+            uint256 delay = _timelock.getMinDelay();
+            _timelockIds[proposalId] = _timelock.hashOperationBatch(targets, values, datas, 0, descriptionHash);
+            _timelock.scheduleBatch(targets, values, datas, 0, descriptionHash, delay);
+            return proposalId;
+        } else {
+            return super.queue(targets, values, calldatas, descriptionHash);
+        }
+    }
+
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public payable virtual override(Governor, IGovernor) returns (uint256) {
+        uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+        if (proposalDataType(proposalId) != uint8(OptionType.Single)) {
+            bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
+            _execute(proposalId, targets, values, datas, descriptionHash);
+            return proposalId;
+        } else {
+            return super.execute(targets, values, calldatas, descriptionHash);
+        }
     }
 }
