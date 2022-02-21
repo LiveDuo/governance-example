@@ -132,12 +132,18 @@ contract GovernorContract is
         bytes32 descriptionHash
     ) public virtual returns (uint256) {
         uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+
+        require(state(proposalId) == ProposalState.Succeeded, "Governor: proposal not successful");
+
         require(proposalDataType(proposalId) != uint8(OptionType.Single), "Proposal does not have options");
 
         bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
         uint256 delay = _timelock.getMinDelay();
         _timelockIds[proposalId] = _timelock.hashOperationBatch(targets, values, datas, 0, descriptionHash);
         _timelock.scheduleBatch(targets, values, datas, 0, descriptionHash, delay);
+
+        emit ProposalQueued(proposalId, block.timestamp + delay);
+
         return proposalId;
         
     }
@@ -149,10 +155,21 @@ contract GovernorContract is
         bytes32 descriptionHash
     ) public payable virtual returns (uint256) {
         uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+
+        ProposalState status = state(proposalId);
+        require(
+            status == ProposalState.Succeeded || status == ProposalState.Queued,
+            "Governor: proposal not successful"
+        );
+        _proposals[proposalId].executed = true;
+
         require(proposalDataType(proposalId) != uint8(OptionType.Single), "Proposal does not have options");
 
         bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
         _execute(proposalId, targets, values, datas, descriptionHash);
+
+        emit ProposalExecuted(proposalId);
+        
         return proposalId;
     }
 }

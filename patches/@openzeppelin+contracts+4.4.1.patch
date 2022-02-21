@@ -1,3 +1,16 @@
+diff --git a/node_modules/@openzeppelin/contracts/governance/Governor.sol b/node_modules/@openzeppelin/contracts/governance/Governor.sol
+index 08d5764..4f793cc 100644
+--- a/node_modules/@openzeppelin/contracts/governance/Governor.sol
++++ b/node_modules/@openzeppelin/contracts/governance/Governor.sol
+@@ -38,7 +38,7 @@ abstract contract Governor is Context, ERC165, EIP712, IGovernor {
+ 
+     string private _name;
+ 
+-    mapping(uint256 => ProposalCore) private _proposals;
++    mapping(uint256 => ProposalCore) public _proposals;
+ 
+     /**
+      * @dev Restrict access to governor executing address. Some module might override the _executor function to make
 diff --git a/node_modules/@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol b/node_modules/@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol
 index fda8dd1..c2775a9 100644
 --- a/node_modules/@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol
