@@ -124,6 +124,18 @@ contract GovernorContract is
         return proposalId;
     }
 
+    function queue(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public virtual override returns (uint256) {
+        uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+        require(proposalDataType(proposalId) == uint8(OptionType.Single), "Governor: Proposal is not single choice");
+
+        return super.queue(targets, values, calldatas, descriptionHash);
+    }
+
     function queueWithOptions(
         address[] memory targets,
         uint256[] memory values,
@@ -134,7 +146,7 @@ contract GovernorContract is
 
         require(state(proposalId) == ProposalState.Succeeded, "Governor: proposal not successful");
 
-        require(proposalDataType(proposalId) != uint8(OptionType.Single), "Proposal does not have options");
+        require(proposalDataType(proposalId) != uint8(OptionType.Single), "Governor: Proposal does not have options");
 
         bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
         uint256 delay = _timelock.getMinDelay();
@@ -145,6 +157,18 @@ contract GovernorContract is
 
         return proposalId;
         
+    }
+
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public payable virtual override(Governor, IGovernor) returns (uint256) {
+        uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+        require(proposalDataType(proposalId) == uint8(OptionType.Single), "Governor: Proposal is not single choice");
+
+        return super.execute(targets, values, calldatas, descriptionHash);
     }
 
     function executeWithOptions(
@@ -162,7 +186,7 @@ contract GovernorContract is
         );
         _proposals[proposalId].executed = true;
 
-        require(proposalDataType(proposalId) != uint8(OptionType.Single), "Proposal does not have options");
+        require(proposalDataType(proposalId) != uint8(OptionType.Single), "Governor: Proposal does not have options");
 
         bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
         _execute(proposalId, targets, values, datas, descriptionHash);
