@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/governance/Governor.sol";
 
+import "hardhat/console.sol";
+
 abstract contract GovernorCountingExtended is Governor {
     /**
      * @dev Supported vote types. Matches Governor Bravo ordering.
@@ -234,7 +236,7 @@ abstract contract GovernorCountingExtended is Governor {
 
         if (dataType == uint8(OptionType.Address)) {
             address param = proposalOption.data._address;
-            return abi.encodePacked(param);
+            return abi.encodePacked(new bytes(12), param);
         } else if (dataType == uint8(OptionType.UNumber)) {
             uint256 param = proposalOption.data._unumber;
             return abi.encodePacked(param);
