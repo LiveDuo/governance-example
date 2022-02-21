@@ -119,8 +119,7 @@ contract GovernorContract is
         string memory description,
         uint8 dataType
     ) public returns (uint256) {
-        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
-        super.propose(targets, values, calldatas, description);
+        uint256 proposalId = super.propose(targets, values, calldatas, description);
         setOptionDataType(proposalId, dataType);
         return proposalId;
     }
@@ -169,7 +168,7 @@ contract GovernorContract is
         _execute(proposalId, targets, values, datas, descriptionHash);
 
         emit ProposalExecuted(proposalId);
-        
+
         return proposalId;
     }
 }
