@@ -115,8 +115,8 @@ describe('Compound Governance', () => {
 		console.log()
 
 		const descriptionHash = ethers.utils.id(description)
-		await governor.queue([governanceToken.address], [0], [functionEncoded], descriptionHash)
-		await governor.execute([governanceToken.address], [0], [functionEncoded], descriptionHash)
+		await governor.queueWithOptions([governanceToken.address], [0], [functionEncoded], descriptionHash)
+		await governor.executeWithOptions([governanceToken.address], [0], [functionEncoded], descriptionHash)
 
 		const result = await governanceToken.started()
 		console.log('Executing Proposal')

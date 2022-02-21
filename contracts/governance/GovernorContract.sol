@@ -125,37 +125,34 @@ contract GovernorContract is
         return proposalId;
     }
 
-    function queue(
+    function queueWithOptions(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public virtual override returns (uint256) {
+    ) public virtual returns (uint256) {
         uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
-        if (proposalDataType(proposalId) != uint8(OptionType.Single)) {
-            bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
-            uint256 delay = _timelock.getMinDelay();
-            _timelockIds[proposalId] = _timelock.hashOperationBatch(targets, values, datas, 0, descriptionHash);
-            _timelock.scheduleBatch(targets, values, datas, 0, descriptionHash, delay);
-            return proposalId;
-        } else {
-            return super.queue(targets, values, calldatas, descriptionHash);
-        }
+        require(proposalDataType(proposalId) != uint8(OptionType.Single), "Proposal does not have options");
+
+        bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
+        uint256 delay = _timelock.getMinDelay();
+        _timelockIds[proposalId] = _timelock.hashOperationBatch(targets, values, datas, 0, descriptionHash);
+        _timelock.scheduleBatch(targets, values, datas, 0, descriptionHash, delay);
+        return proposalId;
+        
     }
 
-    function execute(
+    function executeWithOptions(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public payable virtual override(Governor, IGovernor) returns (uint256) {
+    ) public payable virtual returns (uint256) {
         uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
-        if (proposalDataType(proposalId) != uint8(OptionType.Single)) {
-            bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
-            _execute(proposalId, targets, values, datas, descriptionHash);
-            return proposalId;
-        } else {
-            return super.execute(targets, values, calldatas, descriptionHash);
-        }
+        require(proposalDataType(proposalId) != uint8(OptionType.Single), "Proposal does not have options");
+
+        bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
+        _execute(proposalId, targets, values, datas, descriptionHash);
+        return proposalId;
     }
 }
