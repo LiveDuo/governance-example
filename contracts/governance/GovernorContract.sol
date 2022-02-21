@@ -22,19 +22,12 @@ contract GovernorContract is
     uint256 public s_votingDelay;
     uint256 public s_votingPeriod;
 
-    uint256 public s_votingHalfBlock;
-
-    uint256 public blockNumberDeployed;
-
-    address public temporaryManager;
-
     constructor(
         ERC20Votes _token,
         TimelockController _timelock,
         uint256 _quorumPercentage,
         uint256 _votingPeriod,
-        uint256 _votingDelay,
-        uint256 _votingHalfBlock
+        uint256 _votingDelay
     )
         Governor("GovernorContract")
         GovernorVotes(_token)
@@ -43,16 +36,6 @@ contract GovernorContract is
     {
         s_votingDelay = _votingDelay;
         s_votingPeriod = _votingPeriod;
-        s_votingHalfBlock = _votingHalfBlock;
-
-        blockNumberDeployed = block.number;
-
-        temporaryManager = msg.sender;
-    }
-
-    function setTemporaryManager(address newManager) public {
-        require(temporaryManager == msg.sender, "Not existing manager");
-        temporaryManager = newManager;
     }
 
     function votingDelay() public view override returns (uint256) {
@@ -74,49 +57,6 @@ contract GovernorContract is
         return super.quorum(blockNumber);
     }
 
-    function getBlockDifference(uint256 blockNumber) public view returns (uint256) {
-        if (blockNumber > blockNumberDeployed) {
-            return blockNumber - blockNumberDeployed;
-        } else {
-            return 0;
-        }
-    }
-
-    function stretchedExponential(int256 x, int256 a, int256 b) internal pure returns (int256) {
-        int256 exp = -(PRBMathSD59x18.fromInt(x).div(PRBMathSD59x18.fromInt(a))).pow(PRBMathSD59x18.fromInt(b));
-        return PRBMathSD59x18.scale()-PRBMathSD59x18.e().pow(exp);
-    }
-
-    function getBallotWeightFromBlockNumber(uint256 blockNumber) public view returns (int256) {
-        int256 x = int(getBlockDifference(blockNumber));
-        int256 a = PRBMathSD59x18.fromInt(int(s_votingHalfBlock))
-            .mul(PRBMathSD59x18.sqrt(PRBMathSD59x18.ln(PRBMathSD59x18.fromInt(2))).inv()).toInt();
-        int256 b = 2;
-        return stretchedExponential(x, a, b);
-    }
-
-    // A = user votes, B = manager votes, a = ballot weight, b = manager weight
-    // A + B = (A + B)(a + b) = Aa + Ab + Ba + Bb = [Aa] + [(A+B)b + Ba] <- [user part] + [manager part]
-    function getWeightedVotes(address account, uint256 blockNumber, int256 ballotWeight) internal view returns (uint256) {
-        uint256 userWeightedVotes = uint(PRBMathSD59x18.fromInt(int(super.getVotes(account, blockNumber))).mul(ballotWeight).toInt());
-        if (account == temporaryManager) {
-            uint256 totalWeightedVotes = uint(PRBMathSD59x18.fromInt(int(token.totalSupply())).mul(PRBMathSD59x18.scale() - ballotWeight).toInt());
-            return totalWeightedVotes + userWeightedVotes;
-        } else {
-            return userWeightedVotes;
-        }
-    }
-
-    function getVotes(address account, uint256 blockNumber)
-        public
-        view
-        override(IGovernor, GovernorVotes)
-        returns (uint256)
-    {
-        int256 ballotWeight = getBallotWeightFromBlockNumber(blockNumber);
-        return getWeightedVotes(account, blockNumber, ballotWeight);
-    }
-
     function state(uint256 proposalId)
         public
         view
@@ -133,30 +73,6 @@ contract GovernorContract is
         string memory description
     ) public override(Governor, IGovernor) returns (uint256) {
         return super.propose(targets, values, calldatas, description);
-    }
-
-    function proposeWithOptions(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        uint8 dataType
-    ) public returns (uint256) {
-        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
-        super.propose(targets, values, calldatas, description);
-        setOptionDataType(proposalId, dataType);
-        return proposalId;
-    }
-
-    function hashProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) public view virtual override(Governor, IGovernor) returns (uint256) {
-        uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
-        bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
-        return super.hashProposal(targets, values, datas, descriptionHash);
     }
 
     function _execute(
@@ -194,5 +110,33 @@ contract GovernorContract is
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    /**
+     * @dev New Functions
+     */
+
+    function proposeWithOptions(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        uint8 dataType
+    ) public returns (uint256) {
+        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
+        super.propose(targets, values, calldatas, description);
+        setOptionDataType(proposalId, dataType);
+        return proposalId;
+    }
+
+    function hashProposal(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public view virtual override(Governor, IGovernor) returns (uint256) {
+        uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+        bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
+        return super.hashProposal(targets, values, datas, descriptionHash);
     }
 }

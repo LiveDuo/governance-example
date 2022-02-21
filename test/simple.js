@@ -1,18 +1,10 @@
 const { ethers, upgrades } = require('hardhat')
-const { expect } = require('chai')
-const { fromBn } = require('evm-bn')
-
-const secondsInDay = 24 * 60 * 60
-const secondsInBock = 17
-
-const blockNumberAfterDays = (days) => Math.round(days * secondsInDay / secondsInBock)
 
 // Governance Parameters
 const QUORUM_PERCENTAGE = 4 // percentage
 const VOTING_PERIOD = 5 // blocks
 const VOTING_DELAY = 1 // block
 const TIMELOCK_DELAY = 1 // seconds
-const EQUALIBRIUM_BLOCK = blockNumberAfterDays(180) // periods
 
 const ProposalState = [
 	'Pending',
@@ -54,7 +46,7 @@ describe('Compound Governance', () => {
 
 		// deploy governor
 		const GovernorContract = await ethers.getContractFactory('GovernorContract')
-		governor = await GovernorContract.deploy(governanceToken.address, governanceTimeLock.address, QUORUM_PERCENTAGE, VOTING_PERIOD, VOTING_DELAY, EQUALIBRIUM_BLOCK)
+		governor = await GovernorContract.deploy(governanceToken.address, governanceTimeLock.address, QUORUM_PERCENTAGE, VOTING_PERIOD, VOTING_DELAY)
 
 		// get governance roles
 		const proposerRole = await governanceTimeLock.PROPOSER_ROLE()
@@ -67,13 +59,6 @@ describe('Compound Governance', () => {
 		// transfer ownership to governor contract
 		const transferOwnershipTx = await governanceToken.connect(owner).transferOwnership(governanceTimeLock.address)
 		await transferOwnershipTx.wait()
-
-		// check voting power
-		const ballotWeightAt0 = await governor.getBallotWeightFromBlockNumber(0)
-		expect(parseFloat(fromBn(ballotWeightAt0))).to.equal(0)
-		
-		const totalVotes = await governanceToken.totalSupply()
-		expect(parseFloat(fromBn(totalVotes))).to.equal(1000000)
 
 	})
 

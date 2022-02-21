@@ -85,66 +85,6 @@ abstract contract GovernorCountingSimple is Governor {
         return (proposalvote.againstVotes, proposalvote.forVotes, proposalvote.abstainVotes);
     }
 
-    function optionSucceeded(uint256 proposalId)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
-        ProposalOption[] memory proposalvote = _proposalVotes[proposalId].options;
-
-        uint256 maxVoteWeights = 0;
-        uint256 index = 0;
-
-        for (uint i = 0; i < proposalvote.length; i++) {
-            if (proposalvote[i].forVotes > maxVoteWeights) {
-                maxVoteWeights = proposalvote[i].forVotes;
-                index = i;
-            }
-        }
-
-        return index;
-    }
-
-    function proposalDataType(uint256 proposalId) public view returns (uint8) {
-        ProposalVote storage proposalvote = _proposalVotes[proposalId];
-        return proposalvote.dataType;
-    }
-
-    function optionParam(uint256 proposalId, uint256 index) public view returns (ProposalOption memory) {
-        ProposalOption[] memory proposalvote = _proposalVotes[proposalId].options;
-
-        if (proposalvote.length == 0) {
-            return ProposalOption(0, "", ProposalOptionData(address(0), 0, 0, false));
-        } else {
-            return proposalvote[index];
-        }
-    }
-
-    function optionVotes(uint256 proposalId)
-        public
-        view
-        virtual
-        returns (
-            uint256[] memory,
-            string[] memory
-        )
-    {
-        ProposalOption[] storage proposalvote = _proposalVotes[proposalId].options;
-
-        uint256[] memory voteWeights = new uint256[](proposalvote.length);
-        for (uint i = 0; i < proposalvote.length; i++) {
-            voteWeights[i] = proposalvote[i].forVotes;
-        }
-
-        string[] memory votesDescriptions = new string[](proposalvote.length);
-        for (uint i = 0; i < proposalvote.length; i++) {
-            votesDescriptions[i] = proposalvote[i].description;
-        }
-
-        return (voteWeights, votesDescriptions);
-    }
-
     /**
      * @dev See {Governor-_quorumReached}.
      */
@@ -222,6 +162,66 @@ abstract contract GovernorCountingSimple is Governor {
 
         ProposalOptionData memory optionData = ProposalOptionData(address(0), 0, 0, boolean);
         proposal.options.push(ProposalOption(0, description, optionData));
+    }
+
+    function optionSucceeded(uint256 proposalId)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
+        ProposalOption[] memory proposalvote = _proposalVotes[proposalId].options;
+
+        uint256 maxVoteWeights = 0;
+        uint256 index = 0;
+
+        for (uint i = 0; i < proposalvote.length; i++) {
+            if (proposalvote[i].forVotes > maxVoteWeights) {
+                maxVoteWeights = proposalvote[i].forVotes;
+                index = i;
+            }
+        }
+
+        return index;
+    }
+
+    function proposalDataType(uint256 proposalId) public view returns (uint8) {
+        ProposalVote storage proposalvote = _proposalVotes[proposalId];
+        return proposalvote.dataType;
+    }
+
+    function optionParam(uint256 proposalId, uint256 index) public view returns (ProposalOption memory) {
+        ProposalOption[] memory proposalvote = _proposalVotes[proposalId].options;
+
+        if (proposalvote.length == 0) {
+            return ProposalOption(0, "", ProposalOptionData(address(0), 0, 0, false));
+        } else {
+            return proposalvote[index];
+        }
+    }
+
+    function optionVotes(uint256 proposalId)
+        public
+        view
+        virtual
+        returns (
+            uint256[] memory,
+            string[] memory
+        )
+    {
+        ProposalOption[] storage proposalvote = _proposalVotes[proposalId].options;
+
+        uint256[] memory voteWeights = new uint256[](proposalvote.length);
+        for (uint i = 0; i < proposalvote.length; i++) {
+            voteWeights[i] = proposalvote[i].forVotes;
+        }
+
+        string[] memory votesDescriptions = new string[](proposalvote.length);
+        for (uint i = 0; i < proposalvote.length; i++) {
+            votesDescriptions[i] = proposalvote[i].description;
+        }
+
+        return (voteWeights, votesDescriptions);
     }
 
     function proposalOptionCount(uint256 proposalId)
