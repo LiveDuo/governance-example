@@ -177,18 +177,7 @@ abstract contract GovernorCountingSimple is Governor {
         require(!proposalvote.hasVoted[account], "GovernorVotingSimple: vote already cast");
         proposalvote.hasVoted[account] = true;
 
-        if (proposalvote.options.length > 0) {
-
-            if (support == uint8(VoteType.Against)) { // against
-                proposalvote.againstVotes += weight;
-            } else if (proposalvote.options.length > support) { // for
-                proposalvote.options[support].forVotes += weight;
-                proposalvote.forVotes += weight;
-            } else { // abstain
-                proposalvote.abstainVotes += weight;
-            }
-
-        } else {
+        if (proposalvote.dataType == uint8(OptionType.Single)) {
 
             if (support == uint8(VoteType.Against)) {
                 proposalvote.againstVotes += weight;
@@ -199,10 +188,20 @@ abstract contract GovernorCountingSimple is Governor {
             } else {
                 revert("GovernorVotingSimple: invalid value for enum VoteType");
             }
+        } else {
+
+            if (support == uint8(VoteType.Against)) { // against
+                proposalvote.againstVotes += weight;
+            } else if (proposalvote.options.length > support) { // for
+                proposalvote.options[support].forVotes += weight;
+                proposalvote.forVotes += weight;
+            } else { // abstain
+                proposalvote.abstainVotes += weight;
+            }
         }
     }
 
-    function upgradeToMultipleOptions(uint256 proposalId, uint8 dataType)
+    function setOptionDataType(uint256 proposalId, uint8 dataType)
         internal
     {
         ProposalVote storage proposal = _proposalVotes[proposalId];
@@ -231,5 +230,55 @@ abstract contract GovernorCountingSimple is Governor {
         returns (uint256)
     {
         return _proposalVotes[proposalId].options.length;
+    }
+
+    function optionSucceededParameters(uint256 proposalId) internal view returns (bytes memory) {
+
+        uint8 dataType = proposalDataType(proposalId);
+        uint256 index = optionSucceeded(proposalId);
+        ProposalOption memory proposalOption = optionParam(proposalId, index);
+
+        if (dataType == uint8(OptionType.Address)) {
+            address param = proposalOption.data._address;
+            return abi.encodePacked(param);
+        } else if (dataType == uint8(OptionType.UNumber)) {
+            uint256 param = proposalOption.data._unumber;
+            return abi.encodePacked(param);
+        } else if (dataType == uint8(OptionType.Number)) {
+            int256 param = proposalOption.data._number;
+            return abi.encodePacked(param);
+        } else if (dataType == uint8(OptionType.Boolean)) {
+            bool param = proposalOption.data._boolean;
+            return abi.encodePacked(uint(param ? 1 : 0));
+        } else {
+            revert("GovernorVotingSimple: invalid value for enum OptionType");
+        }
+    }
+
+    function optionSucceededCalldatas(uint256 proposalId, bytes[] memory datas) public view returns (bytes[] memory) {
+        
+        uint8 dataType = proposalDataType(proposalId);
+        if (dataType == uint8(OptionType.Single)) {
+            return datas;
+        }
+        
+        bytes[] memory calldatas = new bytes[](datas.length);
+        
+        for (uint y = 0; y < datas.length; y++) {
+
+            bytes memory functionSignature = new bytes(4);
+            for (uint i = 0; i < 4; i++) {
+                functionSignature[i] = datas[y][i];
+            }
+
+            bytes memory functionParameters = new bytes(datas[y].length - 4);
+            for (uint i = 0; i < datas[y].length - 4; i++) {
+                functionParameters[i] = datas[y][i+4];
+            }
+
+            calldatas[y] = abi.encodePacked(functionSignature, optionSucceededParameters(proposalId));
+        }
+
+        return calldatas;
     }
 }

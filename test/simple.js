@@ -89,7 +89,7 @@ describe('Compound Governance', () => {
 		console.log('Creating Proposal')
 		const description = 'Proposal #2: Create DAI bond!'
 		const functionEncoded = governanceToken.interface.encodeFunctionData('createAnotherBond', [true])
-		const proposeTx = await governor.proposeMultipleOptions([governanceToken.address], [0], [functionEncoded], description, OptionTypes.indexOf('Boolean'))
+		const proposeTx = await governor.proposeWithOptions([governanceToken.address], [0], [functionEncoded], description, OptionTypes.indexOf('Boolean'))
 		const tx = await proposeTx.wait()
 		const proposalId = tx.events[0].args.proposalId
 		const proposalStateIdBefore = await governor.state(proposalId)
@@ -130,7 +130,7 @@ describe('Compound Governance', () => {
 		console.log()
 
 		const descriptionHash = ethers.utils.id(description)
-		const functionEncodedParameter = await governor.getCalldatas(proposalId, [functionEncoded])
+		const functionEncodedParameter = await governor.optionSucceededCalldatas(proposalId, [functionEncoded])
 			.then(x => x[0])
 
 		await governor.queue([governanceToken.address], [0], [functionEncodedParameter], descriptionHash)

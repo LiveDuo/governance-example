@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.so
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
-import "./GovernorCountingExtended.sol";
+import "../source/GovernorCountingExtended.sol";
 
 contract GovernorContract is
     Governor,
@@ -126,19 +126,6 @@ contract GovernorContract is
         return super.state(proposalId);
     }
 
-    function proposeMultipleOptions(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        string memory description,
-        uint8 dataType
-    ) public returns (uint256) {
-        uint256 result = super.propose(targets, values, calldatas, description);
-        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
-        upgradeToMultipleOptions(proposalId, dataType);
-        return result;
-    }
-
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -148,54 +135,17 @@ contract GovernorContract is
         return super.propose(targets, values, calldatas, description);
     }
 
-    function getFunctionParameters(uint256 proposalId) internal view returns (bytes memory) {
-
-        uint8 dataType = proposalDataType(proposalId);
-        uint256 index = optionSucceeded(proposalId);
-        ProposalOption memory proposalOption = optionParam(proposalId, index);
-
-        if (dataType == uint8(OptionType.Address)) {
-            address param = proposalOption.data._address;
-            return abi.encodePacked(param);
-        } else if (dataType == uint8(OptionType.UNumber)) {
-            uint256 param = proposalOption.data._unumber;
-            return abi.encodePacked(param);
-        } else if (dataType == uint8(OptionType.Number)) {
-            int256 param = proposalOption.data._number;
-            return abi.encodePacked(param);
-        } else if (dataType == uint8(OptionType.Boolean)) {
-            bool param = proposalOption.data._boolean;
-            return abi.encodePacked(uint(param ? 1 : 0));
-        } else {
-            return "";
-        }
-    }
-
-    function getCalldatas(uint256 proposalId, bytes[] memory datas) public view returns (bytes[] memory) {
-        
-        uint8 dataType = proposalDataType(proposalId);
-        if (dataType == uint8(OptionType.Single)) {
-            return datas;
-        }
-        
-        bytes[] memory calldatas = new bytes[](datas.length);
-        
-        for (uint y = 0; y < datas.length; y++) {
-
-            bytes memory functionSignature = new bytes(4);
-            for (uint i = 0; i < 4; i++) {
-                functionSignature[i] = datas[y][i];
-            }
-
-            bytes memory functionParameters = new bytes(datas[y].length - 4);
-            for (uint i = 0; i < datas[y].length - 4; i++) {
-                functionParameters[i] = datas[y][i+4];
-            }
-
-            calldatas[y] = abi.encodePacked(functionSignature, getFunctionParameters(proposalId));
-        }
-
-        return calldatas;
+    function proposeWithOptions(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        string memory description,
+        uint8 dataType
+    ) public returns (uint256) {
+        uint256 proposalId = hashProposal(targets, values, calldatas, keccak256(bytes(description)));
+        super.propose(targets, values, calldatas, description);
+        setOptionDataType(proposalId, dataType);
+        return proposalId;
     }
 
     function hashProposal(
@@ -204,9 +154,9 @@ contract GovernorContract is
         bytes[] memory calldatas,
         bytes32 descriptionHash
     ) public view virtual override(Governor, IGovernor) returns (uint256) {
-        uint256 proposalId = uint256(keccak256(abi.encode(targets, values, calldatas, descriptionHash)));
-        bytes[] memory datas = getCalldatas(proposalId, calldatas);
-        return uint256(keccak256(abi.encode(targets, values, datas, descriptionHash)));
+        uint256 proposalId = super.hashProposal(targets, values, calldatas, descriptionHash);
+        bytes[] memory datas = optionSucceededCalldatas(proposalId, calldatas);
+        return super.hashProposal(targets, values, datas, descriptionHash);
     }
 
     function _execute(
