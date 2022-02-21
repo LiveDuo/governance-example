@@ -6,8 +6,6 @@ import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
-import "prb-math/contracts/PRBMathSD59x18.sol";
-
 import "../source/GovernorCountingExtended.sol";
 
 contract GovernorContract is
@@ -17,8 +15,6 @@ contract GovernorContract is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
-    using PRBMathSD59x18 for int256;
-
     uint256 public s_votingDelay;
     uint256 public s_votingPeriod;
 

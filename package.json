@@ -9,8 +9,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.1",
     "@openzeppelin/contracts-upgradeable": "^4.4.1",
-    "patch-package": "^6.4.7",
-    "prb-math": "^2.4.3"
+    "patch-package": "^6.4.7"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
